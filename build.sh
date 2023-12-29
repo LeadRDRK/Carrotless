@@ -22,3 +22,13 @@ build() {
 
 build arm64-v8a
 build armeabi-v7a
+
+ARM64_V8A_SHA1=($(sha1sum build/arm64-v8a/libmain.so))
+ARMEABI_V7A_SHA1=($(sha1sum build/armeabi-v7a/libmain.so))
+
+cat << EOF > build/sha1.json
+{
+    "libmain-arm64-v8a.so": "$ARM64_V8A_SHA1",
+    "libmain-armeabi-v7a.so": "$ARMEABI_V7A_SHA1"
+}
+EOF
