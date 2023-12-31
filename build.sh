@@ -32,3 +32,5 @@ cat << EOF > build/sha1.json
     "libmain-armeabi-v7a.so": "$ARMEABI_V7A_SHA1"
 }
 EOF
+cp build/arm64-v8a/libmain.so build/libmain-arm64-v8a.so
+cp build/armeabi-v7a/libmain.so build/libmain-armeabi-v7a.so
