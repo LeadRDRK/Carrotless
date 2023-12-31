@@ -492,25 +492,17 @@ void hack_thread(void *arg [[maybe_unused]]) {
     LOGI("%s api level: %d", ABI, api_level);
     if (api_level >= 30) {
         if (!IsABIRequiredNativeBridge()) {
-            void *addr;
-            if (IsRunningOnNativeBridge()) {
-                addr = reinterpret_cast<void *>(dlopen);
-            } else {
-                addr = DobbySymbolResolver(nullptr,
-                                           "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
-            }
-            if (addr) {
-                LOGI("%s do_dlopen at: %p", ABI, addr);
-                if (IsRunningOnNativeBridge()) {
-                    addr_do_dlopen = addr;
-                    DobbyHook(addr_do_dlopen, reinterpret_cast<void *>(new_do_dlopen),
-                              reinterpret_cast<void **>(&orig_do_dlopen));
-                } else {
-                    addr_do_dlopen_V24 = addr;
-                    DobbyHook(addr_do_dlopen_V24, reinterpret_cast<void *>(new_do_dlopen_V24),
-                              reinterpret_cast<void **>(&orig_do_dlopen_V24));
-                }
-            }
+            // doesn't hurt to hook both since different devices seems to have different ideas
+            addr_do_dlopen = reinterpret_cast<void *>(dlopen);
+            LOGI("do_dlopen at: %p", addr_do_dlopen);
+            DobbyHook(addr_do_dlopen, reinterpret_cast<void *>(new_do_dlopen),
+                        reinterpret_cast<void **>(&orig_do_dlopen));
+
+            addr_do_dlopen_V24 = DobbySymbolResolver(nullptr,
+                                    "__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv");
+            LOGI("do_dlopen_V24 at: %p", addr_do_dlopen_V24);
+            DobbyHook(addr_do_dlopen_V24, reinterpret_cast<void *>(new_do_dlopen_V24),
+                        reinterpret_cast<void **>(&orig_do_dlopen_V24));
         } else {
             addr_NativeBridgeLoadLibraryExt_V30 = GetNativeBridgeLoadLibrary(
                     DobbySymbolResolver(nullptr,
@@ -524,26 +516,16 @@ void hack_thread(void *arg [[maybe_unused]]) {
         }
     } else if (api_level >= 26) {
         if (!IsABIRequiredNativeBridge()) {
-            void *addr;
-            if (IsRunningOnNativeBridge()) {
-                addr = reinterpret_cast<void *>(dlopen);
-            } else {
-                void *libdl_handle = dlopen("libdl.so", RTLD_LAZY);
-                addr = dlsym(libdl_handle, "__loader_dlopen");
-            }
-            if (addr) {
-                if (IsRunningOnNativeBridge()) {
-                    LOGI("do_dlopen at: %p", addr);
-                    addr_do_dlopen = addr;
-                    DobbyHook(addr_do_dlopen, reinterpret_cast<void *>(new_do_dlopen),
-                              reinterpret_cast<void **>(&orig_do_dlopen));
-                } else {
-                    LOGI("__loader_dlopen at: %p", addr);
-                    addr___loader_dlopen = addr;
-                    DobbyHook(addr___loader_dlopen, reinterpret_cast<void *>(new___loader_dlopen),
-                              reinterpret_cast<void **>(&orig___loader_dlopen));
-                }
-            }
+            addr_do_dlopen = reinterpret_cast<void *>(dlopen);
+            LOGI("do_dlopen at: %p", addr_do_dlopen);
+            DobbyHook(addr_do_dlopen, reinterpret_cast<void *>(new_do_dlopen),
+                        reinterpret_cast<void **>(&orig_do_dlopen));
+
+            void *libdl_handle = dlopen("libdl.so", RTLD_LAZY);
+            addr___loader_dlopen = dlsym(libdl_handle, "__loader_dlopen");
+            LOGI("__loader_dlopen at: %p", addr___loader_dlopen);
+            DobbyHook(addr___loader_dlopen, reinterpret_cast<void *>(new___loader_dlopen),
+                        reinterpret_cast<void **>(&orig___loader_dlopen));
         } else {
             addr_NativeBridgeLoadLibraryExt_V26 = GetNativeBridgeLoadLibrary(
                     DobbySymbolResolver(nullptr,

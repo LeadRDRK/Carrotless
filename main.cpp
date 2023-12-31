@@ -13,19 +13,17 @@
 #include <dlfcn.h>
 
 void hook() {
-    if (IsRunningOnNativeBridge()) {
-        Game::currentGameRegion = Game::CheckPackageNameByDataPath();
-        if (Game::currentGameRegion == Game::Region::UNKNOWN) {
-            LOGW("Region UNKNOWN...");
-            return;
-        }
-        int ret;
-        pthread_t t;
-        ret = pthread_create(&t, nullptr,
-                             reinterpret_cast<void *(*)(void *)>(hack_thread), nullptr);
-        if (ret != 0) {
-            LOGE("can't create thread: %s\n", strerror(ret));
-        }
+    Game::currentGameRegion = Game::CheckPackageNameByDataPath();
+    if (Game::currentGameRegion == Game::Region::UNKNOWN) {
+        LOGW("Region UNKNOWN...");
+        return;
+    }
+    int ret;
+    pthread_t t;
+    ret = pthread_create(&t, nullptr,
+                            reinterpret_cast<void *(*)(void *)>(hack_thread), nullptr);
+    if (ret != 0) {
+        LOGE("can't create thread: %s\n", strerror(ret));
     }
 }
 
