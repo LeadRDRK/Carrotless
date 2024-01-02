@@ -1278,6 +1278,7 @@ void TextMeshProUguiCommon_Awake_hook(Il2CppObject *thisObj) {
     reinterpret_cast<decltype(TextMeshProUguiCommon_Awake_hook) *>(TextMeshProUguiCommon_Awake_orig)(
             thisObj);
     auto customFont = GetCustomTMPFont();
+    if (!customFont) return;
     auto customFontMaterialField = il2cpp_class_get_field_from_name(customFont->klass, "material");
     Il2CppObject *customFontMaterial;
     il2cpp_field_get_value(customFont, customFontMaterialField, &customFontMaterial);
