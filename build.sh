@@ -10,12 +10,16 @@ if [[ -z "$ANDROID_PLATFORM" ]]; then
     ANDROID_PLATFORM=24
 fi
 
+if [[ -z "$BUILD_TYPE" ]]; then
+    BUILD_TYPE=Release
+fi
+
 
 build() {
     echo "---- Building for $1"
     mkdir -p "build/$1"
     pushd "build/$1"
-    cmake ../.. -GNinja -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DANDROID_PLATFORM="$ANDROID_PLATFORM" -DANDROID_ABI="$1" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    cmake ../.. -GNinja -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" -DANDROID_PLATFORM="$ANDROID_PLATFORM" -DANDROID_ABI="$1" -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     ninja
     popd
 }
