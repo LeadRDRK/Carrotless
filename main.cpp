@@ -5,8 +5,6 @@
 #include "stdinclude.hpp"
 #include "hook.h"
 
-#include "lsplant.hpp"
-
 #include "elf_util.h"
 
 #include <jni.h>
@@ -31,7 +29,7 @@ typedef jint (*JNI_OnLoad_Fun)(JavaVM*);
 
 extern "C" {
 
-jint JNI_OnLoad(JavaVM* vm, void* reserved)
+jint JNI_OnLoad(JavaVM* vm, void* /*reserved*/)
 {
     void* handle = dlopen("libmain_orig.so", RTLD_LAZY);
     JNI_OnLoad_Fun origOnLoad = reinterpret_cast<JNI_OnLoad_Fun>(dlsym(handle, "JNI_OnLoad"));

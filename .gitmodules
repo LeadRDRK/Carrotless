@@ -7,9 +7,6 @@
 [submodule "SQLiteCpp"]
 	path = SQLiteCpp
 	url = https://github.com/SRombauts/SQLiteCpp.git
-[submodule "LSPlant"]
-	path = LSPlant
-	url = https://github.com/LSPosed/LSPlant.git
 [submodule "hmac_sha256"]
 	path = hmac_sha256
 	url = https://github.com/h5p9sl/hmac_sha256.git

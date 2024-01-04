@@ -8,7 +8,6 @@ endmacro()
 
 SET_OPTION(DOBBY_DEBUG OFF)
 SET_OPTION(DOBBY_GENERATE_SHARED OFF)
-SET_OPTION(LSPLANT_BUILD_SHARED OFF)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/Dobby)
 
@@ -19,10 +18,6 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/SQLiteCpp)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/hmac_sha256)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/cpp-httplib)
-
-include_directories(${CMAKE_CURRENT_LIST_DIR}/LSPlant/lsplant/src/main/jni/include)
-
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/LSPlant/lsplant/src/main/jni)
 
 include_directories(include)
 
@@ -55,7 +50,7 @@ target_compile_definitions(sqlite3 PUBLIC SQLITE_TEMP_STORE=3)
 target_compile_definitions(sqlite3 PUBLIC SQLITE_USE_URI=1)
 
 add_library(${MODULE_NAME} SHARED main.cpp hook.cpp il2cpp/il2cpp_symbols.cpp il2cpp_hook.cpp localify/localify.cpp jwt/jwt.cpp logger/logger.cpp notifier/notifier.cpp elf_util.cpp)
-target_link_libraries(${MODULE_NAME} log dobby SQLiteCpp sqlite3 lsplant_static hmac_sha256 httplib)
+target_link_libraries(${MODULE_NAME} log dobby SQLiteCpp sqlite3 hmac_sha256 httplib)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
