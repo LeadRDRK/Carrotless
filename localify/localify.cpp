@@ -13,32 +13,36 @@ namespace localify {
         unordered_map<size_t, string> text_db;
         unordered_map<string, string> textId_text_db;
         std::vector<size_t> str_list;
+
+        TextData TextDataContent;
+		CharacterSystemTextData CharacterSystemTextDataContent;
+		RaceJikkyoCommentData RaceJikkyoCommentDataContent;
+		RaceJikkyoMessageData RaceJikkyoMessageDataContent;
+
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> utf16conv;
+        std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> wconv;
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> wutf16conv;
     }
 
     u16string u8_u16(const string &u8) {
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> utf16conv;
         return utf16conv.from_bytes(u8);
     }
 
     string u16_u8(const u16string &u16) {
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> utf16conv;
         return utf16conv.to_bytes(u16);
     }
 
     wstring u8_wide(const string &mbs) {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> wconv;
         return wconv.from_bytes(mbs);
     }
 
     wstring u16_wide(const u16string &str) {
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> utf16conv;
         std::string utf8 = utf16conv.to_bytes(str);
         return u8_wide(utf8);
     }
 
     string wide_u8(const wstring &wstr) {
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> conversion;
-        std::string mbs = conversion.to_bytes(wstr);
+        std::string mbs = wutf16conv.to_bytes(wstr);
         return mbs;
     }
 
@@ -130,6 +134,98 @@ namespace localify {
         load_textdb(dicts);
     }*/
 
+    void load_dicts() {
+        // TextData
+        if (!g_text_data_dict_path.empty()) {
+            std::ifstream textDict(g_text_data_dict_path);
+            rapidjson::IStreamWrapper wrapper(textDict);
+            rapidjson::Document doc;
+            doc.ParseStream(wrapper);
+            if (doc.HasParseError() || !doc.IsObject())
+            {
+                LOGE("Error parsing text dict file: %s", g_text_data_dict_path.c_str());
+                return;
+            }
+
+            for (const auto& [category, indexTextMap] : doc.GetObject())
+            {
+                const auto categoryValue = std::stoll(category.GetString());
+                auto& map = TextDataContent.Data[categoryValue];
+                for (const auto& [index, text] : indexTextMap.GetObject())
+                {
+                    const auto indexValue = std::stoll(index.GetString());
+                    const auto textValue = text.GetString();
+                    map.emplace(indexValue, textValue);
+                }
+            }
+        }
+
+        // CharacterSystemText
+        if (!g_character_system_text_dict_path.empty()) {
+            std::ifstream characterSystemTextDict(g_character_system_text_dict_path);
+            rapidjson::IStreamWrapper wrapper(characterSystemTextDict);
+            rapidjson::Document doc;
+            doc.ParseStream(wrapper);
+            if (doc.HasParseError() || !doc.IsObject())
+            {
+                LOGE("Error parsing text dict file: %s", g_character_system_text_dict_path.c_str());
+                return;
+            }
+
+            for (const auto& [characterId, voiceIdTextMap] : doc.GetObject())
+            {
+                const auto characterIdValue = std::stoll(characterId.GetString());
+                auto& map = CharacterSystemTextDataContent.Data[characterIdValue];
+                for (const auto& [voiceId, text] : voiceIdTextMap.GetObject())
+                {
+                    const auto voiceIdValue = std::stoll(voiceId.GetString());
+                    const auto textValue = text.GetString();
+                    map.emplace(voiceIdValue, textValue);
+                }
+            }
+        }
+
+        // RaceJikkyoComment
+        if (!g_race_jikkyo_comment_dict_path.empty()) {
+            std::ifstream raceJikkyoCommentDict(g_race_jikkyo_comment_dict_path);
+            rapidjson::IStreamWrapper wrapper(raceJikkyoCommentDict);
+            rapidjson::Document doc;
+            doc.ParseStream(wrapper);
+            if (doc.HasParseError() || !doc.IsObject())
+            {
+                LOGE("Error parsing text dict file: %s", g_race_jikkyo_comment_dict_path.c_str());
+                return;
+            }
+
+            for (const auto& [id, text] : doc.GetObject())
+            {
+                const auto idValue = std::stoll(id.GetString());
+                const auto textValue = text.GetString();
+                RaceJikkyoCommentDataContent.Data.emplace(idValue, textValue);
+            }
+        }
+
+        // RaceJikkyoMessage
+        if (!g_race_jikkyo_message_dict_path.empty()) {
+            std::ifstream raceJikkyoMessageDict(g_race_jikkyo_message_dict_path);
+            rapidjson::IStreamWrapper wrapper(raceJikkyoMessageDict);
+            rapidjson::Document doc;
+            doc.ParseStream(wrapper);
+            if (doc.HasParseError() || !doc.IsObject())
+            {
+                LOGE("Error parsing text dict file: %s", g_race_jikkyo_message_dict_path.c_str());
+                return;
+            }
+
+            for (const auto& [id, text] : doc.GetObject())
+            {
+                const auto idValue = std::stoll(id.GetString());
+                const auto textValue = text.GetString();
+                RaceJikkyoMessageDataContent.Data.emplace(idValue, textValue);
+            }
+        }
+    }
+
     bool localify_text(size_t hash, string **result) {
         if (text_db.contains(hash)) {
             *result = &text_db[hash];
@@ -185,4 +281,50 @@ namespace localify {
 
         return nullptr;
     }
+
+    Il2CppString* GetTextData(std::size_t category, std::size_t index)
+	{
+		if (const auto iter = TextDataContent.Data.find(category); iter != TextDataContent.Data.end())
+		{
+			if (const auto iter2 = iter->second.find(index); iter2 != iter->second.end())
+			{
+				return il2cpp_string_new(iter2->second.c_str());
+			}
+		}
+
+		return nullptr;
+	}
+
+    Il2CppString* GetCharacterSystemTextData(std::size_t characterId, std::size_t voiceId)
+	{
+		if (const auto iter = CharacterSystemTextDataContent.Data.find(characterId); iter != CharacterSystemTextDataContent.Data.end())
+		{
+			if (const auto iter2 = iter->second.find(voiceId); iter2 != iter->second.end())
+			{
+				return il2cpp_string_new(iter2->second.c_str());
+			}
+		}
+
+		return nullptr;
+	}
+
+	Il2CppString* GetRaceJikkyoCommentData(std::size_t id)
+	{
+		if (const auto iter = RaceJikkyoCommentDataContent.Data.find(id); iter != RaceJikkyoCommentDataContent.Data.end())
+		{
+			return il2cpp_string_new(iter->second.c_str());
+		}
+
+		return nullptr;
+	}
+
+	Il2CppString* GetRaceJikkyoMessageData(std::size_t id)
+	{
+		if (const auto iter = RaceJikkyoMessageDataContent.Data.find(id); iter != RaceJikkyoMessageDataContent.Data.end())
+		{
+			return il2cpp_string_new(iter->second.c_str());
+		}
+
+		return nullptr;
+	}
 }

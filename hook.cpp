@@ -33,7 +33,6 @@ bool g_ui_loading_show_orientation_guide = true;
 bool g_restore_notification = false;
 unordered_map<string, ReplaceAsset> g_replace_assets;
 string g_replace_assetbundle_file_path;
-string g_replace_text_db_path;
 bool g_character_system_text_caption = false;
 int g_cyspring_update_mode = -1;
 bool g_hide_now_loading = false;
@@ -42,6 +41,11 @@ bool g_dump_msgpack_request = false;
 string g_packet_notifier;
 bool g_restore_gallop_webview = true;
 bool g_use_third_party_news = false;
+// Dicts (for master.mdb)
+string g_text_data_dict_path;
+string g_character_system_text_dict_path;
+string g_race_jikkyo_comment_dict_path;
+string g_race_jikkyo_message_dict_path;
 
 string text_id_dict;
 
@@ -399,19 +403,26 @@ optional<vector<string>> read_config() {
             }
         }
 
-        // Not working correctly...
-        /*if (document.HasMember("replaceTextDBPath")) {
-            auto replaceTextDBPath = localify::u8_u16(
-                    document["replaceTextDBPath"].GetString());
-            if (!replaceTextDBPath.starts_with(u"/")) {
-                replaceTextDBPath.insert(0, u16string(U_SDCARD_DATA_PATH "/").append(
-                        localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
-            }
-            if (filesystem::exists(replaceTextDBPath) &&
-                filesystem::is_regular_file(replaceTextDBPath)) {
-                g_replace_text_db_path = localify::u16_u8(replaceTextDBPath);
-            }
-        }*/
+        // Load dicts
+        if (document.HasMember("text_data_dict")) {
+            g_text_data_dict_path = document["text_data_dict"].GetString();
+        }
+
+        if (document.HasMember("character_system_text_dict")) {
+            g_character_system_text_dict_path = document["character_system_text_dict"].GetString();
+        }
+
+        if (document.HasMember("race_jikkyo_comment_dict")) {
+            g_race_jikkyo_comment_dict_path = document["race_jikkyo_comment_dict"].GetString();
+        }
+
+        if (document.HasMember("race_jikkyo_message_dict")) {
+            g_race_jikkyo_message_dict_path = document["race_jikkyo_message_dict"].GetString();
+        }
+
+        localify::load_dicts();
+
+        //////
 
         if (document.HasMember("characterSystemTextCaption")) {
             g_character_system_text_caption = document["characterSystemTextCaption"].GetBool();

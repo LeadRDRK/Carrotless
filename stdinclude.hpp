@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <regex>
 #include <unistd.h>
 #include <sys/system_properties.h>
 #include <dlfcn.h>
@@ -54,6 +55,8 @@ struct ReplaceAsset {
 
 using namespace std;
 
+typedef std::basic_regex<std::u16string> u16regex;
+
 extern bool g_enable_logger;
 extern int g_max_fps;
 extern float g_ui_animation_scale;
@@ -90,8 +93,12 @@ extern bool g_ui_loading_show_orientation_guide;
 extern bool g_restore_notification;
 extern unordered_map<string, ReplaceAsset> g_replace_assets;
 extern string g_replace_assetbundle_file_path;
-extern string g_replace_text_db_path;
 extern bool g_character_system_text_caption;
+// Dicts (for master.mdb)
+extern string g_text_data_dict_path;
+extern string g_character_system_text_dict_path;
+extern string g_race_jikkyo_comment_dict_path;
+extern string g_race_jikkyo_message_dict_path;
 /*
  * ModeNormal 0
  * Mode60FPS 1

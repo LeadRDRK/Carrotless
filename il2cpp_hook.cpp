@@ -516,333 +516,448 @@ void *update_hook(Il2CppObject *thisObj, void *updateType, float deltaTime, floa
                                                                     g_ui_animation_scale);
 }
 
-unordered_map<void *, SQLite::Statement *> text_queries;
-unordered_map<void *, bool> replacement_queries_can_next;
+/********* master.mdb / SQLite plugin hooks ********/
+int (*Query_GetInt)(void* _this, int idx);
 
-SQLite::Database *replacementMDB;
+struct ColumnIndex
+{
+    std::size_t Value;
+    std::optional<std::size_t> QueryResult;
+};
 
-void *query_setup_orig = nullptr;
+struct BindingParam
+{
+    std::size_t Value;
+    std::optional<std::size_t> BindedValue;
+};
 
+using QueryIndex = std::variant<std::monostate, ColumnIndex, BindingParam>;
 
-void query_setup_hook(Il2CppObject *thisObj, void *conn, Il2CppString *sql) {
-    reinterpret_cast<decltype(query_setup_hook) *>(query_setup_orig)(thisObj, conn, sql);
+struct ILocalizationQuery
+{
+    virtual ~ILocalizationQuery() = default;
 
-    auto sqlQuery = u16string(sql->start_char);
+    virtual void AddColumn(std::size_t index, std::string_view column)
+    {
+    }
 
-    if (sqlQuery.find(u"text_data") != string::npos ||
-        sqlQuery.find(u"character_system_text") != string::npos ||
-        sqlQuery.find(u"race_jikkyo_comment") != string::npos ||
-        sqlQuery.find(u"race_jikkyo_message") != string::npos) {
-        auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-        intptr_t *stmtPtr;
-        il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-        try {
-            if (replacementMDB) {
-                text_queries.emplace(stmtPtr, new SQLite::Statement(*replacementMDB,
-                                                                    localify::u16_u8(sqlQuery)));
-            } else {
-                text_queries.emplace(stmtPtr, nullptr);
-            }
-        } catch (exception &e) {
-            LOGD("query_setup ERROR: %s", e.what());
+    virtual void AddParam(std::size_t index, std::string_view param)
+    {
+    }
+
+    virtual void Bind(std::size_t index, std::size_t value)
+    {
+    }
+
+    virtual void Step(void* query)
+    {
+    }
+
+    virtual Il2CppString* GetString(std::size_t index) = 0;
+};
+
+struct TextDataQuery : ILocalizationQuery
+{
+    QueryIndex Category;
+    QueryIndex Index;
+
+    QueryIndex Text;
+
+    void AddColumn(std::size_t index, std::string_view column) override
+    {
+        if (column == "text"sv)
+        {
+            Text.emplace<ColumnIndex>(index);
         }
     }
-}
 
+    void AddParam(std::size_t index, std::string_view param) override
+    {
+        if (param == "category"sv)
+        {
+            Category.emplace<BindingParam>(index);
+        }
+        else if (param == "index"sv)
+        {
+            Index.emplace<BindingParam>(index);
+        }
+    }
 
-void *Plugin_sqlite3_step_orig = nullptr;
+    void Bind(std::size_t index, std::size_t value) override
+    {
+        if (const auto p = std::get_if<BindingParam>(&Category))
+        {
+            if (index == p->Value)
+            {
+                p->BindedValue.emplace(value);
+                return;
+            }
+        }
 
-bool Plugin_sqlite3_step_hook(intptr_t *pStmt) {
-    LOGD("Plugin_sqlite3_step_hook");
-    if (text_queries.contains(pStmt)) {
-        try {
-            auto stmt = text_queries.at(pStmt);
-            if (stmt) {
-                if (stmt->getQuery().find("`race_jikkyo_message`;") != string::npos ||
-                    stmt->getQuery().find("`race_jikkyo_comment`;") != string::npos) {
-                    if (replacement_queries_can_next.find(pStmt) ==
-                        replacement_queries_can_next.end()) {
-                        replacement_queries_can_next.emplace(pStmt, true);
-                    }
-                    if (replacement_queries_can_next.at(pStmt)) {
-                        try {
-                            stmt->executeStep();
-                        } catch (exception &e) {
-                        }
-                    }
-                } else {
-                    stmt->executeStep();
+        if (const auto p = std::get_if<BindingParam>(&Index))
+        {
+            if (index == p->Value)
+            {
+                p->BindedValue.emplace(value);
+            }
+        }
+    }
+
+    Il2CppString* GetString(std::size_t index) override
+    {
+        if (index == std::get<ColumnIndex>(Text).Value)
+        {
+            const auto category = std::get<BindingParam>(Category).BindedValue.value();
+            const auto index = std::get<BindingParam>(Index).BindedValue.value();
+            return localify::GetTextData(category, index);
+        }
+        return nullptr;
+    }
+};
+
+struct CharacterSystemTextQuery : ILocalizationQuery
+{
+    QueryIndex CharacterId;
+    QueryIndex VoiceId;
+
+    QueryIndex Text;
+
+    void AddColumn(std::size_t index, std::string_view column) override
+    {
+        if (column == "text"sv)
+        {
+            Text.emplace<ColumnIndex>(index);
+        }
+        else if (column == "voice_id"sv)
+        {
+            VoiceId.emplace<ColumnIndex>(index);
+        }
+    }
+
+    void AddParam(std::size_t index, std::string_view param) override
+    {
+        if (param == "character_id"sv)
+        {
+            CharacterId.emplace<BindingParam>(index);
+        }
+        else if (param == "voice_id"sv)
+        {
+            VoiceId.emplace<BindingParam>(index);
+        }
+    }
+
+    void Bind(std::size_t index, std::size_t value) override
+    {
+        if (const auto p = std::get_if<BindingParam>(&CharacterId))
+        {
+            if (index == p->Value)
+            {
+                p->BindedValue.emplace(value);
+                return;
+            }
+        }
+
+        if (const auto p = std::get_if<BindingParam>(&VoiceId))
+        {
+            if (index == p->Value)
+            {
+                p->BindedValue.emplace(value);
+            }
+        }
+    }
+
+    void Step(void* query) override
+    {
+        assert(std::holds_alternative<BindingParam>(CharacterId));
+        if (const auto p = std::get_if<ColumnIndex>(&VoiceId))
+        {
+            const auto voiceId = Query_GetInt(query, p->Value);
+            p->QueryResult.emplace(voiceId);
+        }
+    }
+
+    Il2CppString* GetString(std::size_t index) override
+    {
+        if (index == std::get<ColumnIndex>(Text).Value)
+        {
+            const auto characterId = std::get<BindingParam>(CharacterId).BindedValue.value();
+            const auto voiceId = [&]
+            {
+                if (const auto column = std::get_if<ColumnIndex>(&VoiceId))
+                {
+                    return column->QueryResult.value();
                 }
-            }
-        } catch (exception &e) {
-        }
-    }
-
-    return reinterpret_cast<decltype(Plugin_sqlite3_step_hook) *>(Plugin_sqlite3_step_orig)(pStmt);
-}
-
-void *Plugin_sqlite3_reset_orig = nullptr;
-
-bool Plugin_sqlite3_reset_hook(intptr_t *pStmt) {
-    if (text_queries.contains(pStmt)) {
-        try {
-            auto stmt = text_queries.at(pStmt);
-            if (stmt) {
-                stmt->reset();
-                stmt->clearBindings();
-                replacement_queries_can_next.insert_or_assign(pStmt, true);
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(Plugin_sqlite3_reset_hook) *>(Plugin_sqlite3_reset_orig)(
-            pStmt);
-}
-
-void *query_step_orig = nullptr;
-
-bool query_step_hook(Il2CppObject *thisObj) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr)) {
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-                stmt->executeStep();
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(query_step_hook) *>(query_step_orig)(thisObj);
-}
-
-void *prepared_query_reset_orig = nullptr;
-
-bool prepared_query_reset_hook(Il2CppObject *thisObj) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr)) {
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-
-                stmt->reset();
-                stmt->clearBindings();
-                replacement_queries_can_next.insert_or_assign(stmtPtr, true);
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(prepared_query_reset_hook) *>(prepared_query_reset_orig)(
-            thisObj);
-}
-
-void *prepared_query_bind_text_orig = nullptr;
-
-bool prepared_query_bind_text_hook(Il2CppObject *thisObj, int idx, Il2CppString *text) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr)) {
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-                stmt->bind(idx, localify::u16_u8(text->start_char));
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(prepared_query_bind_text_hook) *>(prepared_query_bind_text_orig)(
-            thisObj, idx, text);
-}
-
-void *prepared_query_bind_int_orig = nullptr;
-
-bool prepared_query_bind_int_hook(Il2CppObject *thisObj, int idx, int iValue) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr)) {
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-                stmt->bind(idx, iValue);
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(prepared_query_bind_int_hook) *>(prepared_query_bind_int_orig)(
-            thisObj, idx, iValue);
-}
-
-void *prepared_query_bind_long_orig = nullptr;
-
-bool prepared_query_bind_long_hook(Il2CppObject *thisObj, int idx, int64_t lValue) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr)) {
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-                stmt->bind(idx, lValue);
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(prepared_query_bind_long_hook) *>(prepared_query_bind_long_orig)(
-            thisObj, idx, lValue);
-}
-
-void *prepared_query_bind_double_orig = nullptr;
-
-bool prepared_query_bind_double_hook(Il2CppObject *thisObj, int idx, double rValue) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr)) {
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-                stmt->bind(idx, rValue);
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(prepared_query_bind_double_hook) *>(prepared_query_bind_double_orig)(
-            thisObj, idx, rValue);
-}
-
-void *query_dispose_orig = nullptr;
-
-void query_dispose_hook(Il2CppObject *thisObj) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr))
-        text_queries.erase(stmtPtr);
-
-    return reinterpret_cast<decltype(query_dispose_hook) *>(query_dispose_orig)(thisObj);
-}
-
-int (*query_getint)(Il2CppObject *thisObj, int index) = nullptr;
-
-void *query_gettext_orig = nullptr;
-
-Il2CppString *query_gettext_hook(Il2CppObject *thisObj, int idx) {
-    auto stmtField = il2cpp_class_get_field_from_name(thisObj->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(thisObj, stmtField, &stmtPtr);
-    auto result = reinterpret_cast<decltype(query_gettext_hook) *>(query_gettext_orig)(thisObj,
-                                                                                       idx);
-
-    if (text_queries.contains(stmtPtr)) {
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-                string text;
-                if (stmt->hasRow()) {
-                    text = stmt->getColumn(idx).getString();
-                    if (!text.empty()) {
-                        if (stmt->getQuery().find("`race_jikkyo_message`;") != string::npos ||
-                            stmt->getQuery().find("`race_jikkyo_comment`;") != string::npos) {
-                            const int id = query_getint(thisObj, 0);
-                            const int id1 = stmt->getColumn(0).getInt();
-                            const int groupId = query_getint(thisObj, 1);
-                            const int groupId1 = stmt->getColumn(1).getInt();
-                            if (stmt->hasRow()) {
-                                if (id == id1 && groupId == groupId1) {
-                                    replacement_queries_can_next.insert_or_assign(stmtPtr, true);
-                                    return il2cpp_string_new(text.data());
-                                } else {
-                                    replacement_queries_can_next.insert_or_assign(stmtPtr, false);
-                                }
-                            }
-                        } else if (stmt->getQuery().find("character_system_text") != string::npos) {
-                            int cueId, cueId1;
-                            string cueSheet, cueSheet1;
-                            if (stmt->getQuery().find("`voice_id`=?") != string::npos) {
-                                cueId = query_getint(thisObj, 2);
-                                cueId1 = stmt->getColumn(2).getInt();
-                                cueSheet = localify::u16_u8(
-                                        reinterpret_cast<decltype(query_gettext_hook) *>(query_gettext_orig)(
-                                                thisObj, 1)->start_char);
-                                cueSheet1 = stmt->getColumn(1).getString();
-                            } else {
-                                cueId = query_getint(thisObj, 3);
-                                cueId1 = stmt->getColumn(3).getInt();
-                                cueSheet = localify::u16_u8(
-                                        reinterpret_cast<decltype(query_gettext_hook) *>(query_gettext_orig)(
-                                                thisObj, 2)->start_char);
-                                cueSheet1 = stmt->getColumn(2).getString();
-                            }
-                            if (cueId == cueId1 && cueSheet == cueSheet1) {
-                                return il2cpp_string_new(text.data());
-                            }
-                        } else {
-                            return il2cpp_string_new(text.data());
-                        }
-                    }
+                else
+                {
+                    return std::get<BindingParam>(VoiceId).BindedValue.value();
                 }
-            }
-        } catch (exception &e) {
+            }();
+
+            return localify::GetCharacterSystemTextData(characterId, voiceId);
         }
-        return localify::get_localized_string(result);
+        return nullptr;
+    }
+};
+
+struct RaceJikkyoCommentQuery : ILocalizationQuery
+{
+    QueryIndex Id;
+
+    QueryIndex Message;
+
+    void AddColumn(std::size_t index, std::string_view column) override
+    {
+        if (column == "message"sv)
+        {
+            Message.emplace<ColumnIndex>(index);
+        }
+        else if (column == "id"sv)
+        {
+            Id.emplace<ColumnIndex>(index);
+        }
+    }
+
+    void AddParam(std::size_t index, std::string_view param) override
+    {
+        if (param == "id"sv)
+        {
+            Id.emplace<BindingParam>(index);
+        }
+    }
+
+    void Bind(std::size_t index, std::size_t value) override
+    {
+        if (const auto p = std::get_if<BindingParam>(&Id))
+        {
+            if (index == p->Value)
+            {
+                p->BindedValue.emplace(value);
+            }
+        }
+    }
+
+    void Step(void* query) override
+    {
+        if (const auto p = std::get_if<ColumnIndex>(&Id))
+        {
+            const auto id = Query_GetInt(query, p->Value);
+            p->QueryResult.emplace(id);
+        }
+    }
+
+    Il2CppString* GetString(std::size_t index) override
+    {
+        if (index == std::get<ColumnIndex>(Message).Value)
+        {
+            const auto id = [&]
+            {
+                if (const auto column = std::get_if<ColumnIndex>(&Id))
+                {
+                    return column->QueryResult.value();
+                }
+                else
+                {
+                    return std::get<BindingParam>(Id).BindedValue.value();
+                }
+            }();
+            return localify::GetRaceJikkyoCommentData(id);
+        }
+        return nullptr;
+    }
+};
+
+struct RaceJikkyoMessageQuery : ILocalizationQuery
+{
+    QueryIndex Id;
+
+    QueryIndex Message;
+
+    void AddColumn(std::size_t index, std::string_view column) override
+    {
+        if (column == "message"sv)
+        {
+            Message.emplace<ColumnIndex>(index);
+        }
+        else if (column == "id"sv)
+        {
+            Id.emplace<ColumnIndex>(index);
+        }
+    }
+
+    void AddParam(std::size_t index, std::string_view param) override
+    {
+        if (param == "id"sv)
+        {
+            Id.emplace<BindingParam>(index);
+        }
+    }
+
+    void Bind(std::size_t index, std::size_t value) override
+    {
+        if (const auto p = std::get_if<BindingParam>(&Id))
+        {
+            if (index == p->Value)
+            {
+                p->BindedValue.emplace(value);
+            }
+        }
+    }
+
+    void Step(void* query) override
+    {
+        if (const auto p = std::get_if<ColumnIndex>(&Id))
+        {
+            const auto id = Query_GetInt(query, p->Value);
+            p->QueryResult.emplace(id);
+        }
+    }
+
+    Il2CppString* GetString(std::size_t index) override
+    {
+        if (index == std::get<ColumnIndex>(Message).Value)
+        {
+            const auto id = [&]
+            {
+                if (const auto column = std::get_if<ColumnIndex>(&Id))
+                {
+                    return column->QueryResult.value();
+                }
+                else
+                {
+                    return std::get<BindingParam>(Id).BindedValue.value();
+                }
+            }();
+            return localify::GetRaceJikkyoMessageData(id);
+        }
+        return nullptr;
+    }
+};
+
+
+std::unordered_map<void*, std::unique_ptr<ILocalizationQuery>> text_queries;
+
+void* query_setup_orig = nullptr;
+void* query_setup_hook(void* _this, void* conn, Il2CppString* sql)
+{
+    static const std::wregex statementPattern(LR"(SELECT (.+?) FROM `(.+?)`(?: WHERE (.+))?;)");
+    static const std::wregex columnPattern(LR"(,?`(\w+)`)");
+    static const std::wregex whereClausePattern(LR"((?:AND )?`(\w+)=?`)");
+
+    std::wstring wSql = u16_wide(sql->start_char);
+    std::wcmatch matches;
+    if (std::regex_match(wSql.c_str(), matches, statementPattern))
+    {
+        const auto columns = matches[1].str();
+        const auto table = matches[2].str();
+        const auto whereClause = matches.size() == 4 ? std::optional(matches[3].str()) : std::nullopt;
+
+        std::unique_ptr<ILocalizationQuery> query;
+
+        if (table == L"text_data")
+        {
+            query = std::make_unique<TextDataQuery>();
+        }
+        else if (table == L"character_system_text")
+        {
+            query = std::make_unique<CharacterSystemTextQuery>();
+        }
+        else if (table == L"race_jikkyo_comment")
+        {
+            query = std::make_unique<RaceJikkyoCommentQuery>();
+        }
+        else if (table == L"race_jikkyo_message")
+        {
+            query = std::make_unique<RaceJikkyoMessageQuery>();
+        }
+        else
+        {
+            goto NormalPath;
+        }
+
+        auto columnsPtr = columns.c_str();
+        std::size_t columnIndex{};
+        while (std::regex_search(columnsPtr, matches, columnPattern))
+        {
+            const auto column = matches[1].str();
+            query->AddColumn(columnIndex++, wide_u8(column));
+
+            columnsPtr = matches.suffix().first;
+        }
+
+        // 有 WHERE 子句的查询
+        if (whereClause)
+        {
+            auto whereClausePtr = whereClause->c_str();
+            std::size_t paramIndex = 1;
+            while (std::regex_search(whereClausePtr, matches, whereClausePattern))
+            {
+                const auto param = matches[1].str();
+                query->AddParam(paramIndex++, wide_u8(param));
+
+                whereClausePtr = matches.suffix().first;
+            }
+        }
+
+        text_queries.emplace(_this, std::move(query));
+    }
+
+NormalPath:
+    return reinterpret_cast<decltype(query_setup_hook)*>(query_setup_orig)(_this, conn, sql);
+}
+
+void* query_dispose_orig = nullptr;
+void query_dispose_hook(void* _this)
+{
+    text_queries.erase(_this);
+
+    return reinterpret_cast<decltype(query_dispose_hook)*>(query_dispose_orig)(_this);
+}
+
+void* query_getstr_orig = nullptr;
+Il2CppString* query_getstr_hook(void* _this, int32_t idx)
+{
+    if (const auto iter = text_queries.find(_this); iter != text_queries.end())
+    {
+        iter->second->Step(_this);
+        if (const auto localizedStr = iter->second->GetString(idx))
+        {
+            return localizedStr;
+        }
+    }
+
+    return reinterpret_cast<decltype(query_getstr_hook)*>(query_getstr_orig)(_this, idx);
+}
+
+void* PreparedQuery_BindInt_orig = nullptr;
+void PreparedQuery_BindInt_hook(void* _this, int32_t idx, int32_t value)
+{
+    if (const auto iter = text_queries.find(_this); iter != text_queries.end())
+    {
+        iter->second->Bind(idx, value);
+    }
+
+    return reinterpret_cast<decltype(PreparedQuery_BindInt_hook)*>(PreparedQuery_BindInt_orig)(_this, idx, value);
+}
+
+std::ptrdiff_t Query_stmt_offset;
+
+void* Plugin_sqlite3_step_orig = nullptr;
+int Plugin_sqlite3_step_hook(void* _this)
+{
+    const auto result = reinterpret_cast<decltype(Plugin_sqlite3_step_hook)*>(Plugin_sqlite3_step_orig)(_this);
+    // 注意现在直接调用 sqlite3_step，_this 是 Query._stmt
+    // TODO: 另一部分 step 直接调用 trampoline，以现在的 hook 实现无法修改，当前在 getstr 中调用 step，这可能使得 step 被重复调用
+    const auto query = static_cast<std::byte*>(_this) - Query_stmt_offset;
+
+    if (const auto iter = text_queries.find(query); iter != text_queries.end())
+    {
+        iter->second->Step(query);
     }
 
     return result;
 }
 
-void *MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_orig = nullptr;
-
-Il2CppObject *
-MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_hook(Il2CppObject *thisObj,
-                                                                     Il2CppObject *query,
-                                                                     int characterId) {
-    auto stmtField = il2cpp_class_get_field_from_name(query->klass, "_stmt");
-    intptr_t *stmtPtr;
-    il2cpp_field_get_value(query, stmtField, &stmtPtr);
-    if (text_queries.contains(stmtPtr)) {
-
-        try {
-            auto stmt = text_queries.at(stmtPtr);
-            if (stmt) {
-                if (replacement_queries_can_next.find(stmtPtr) ==
-                    replacement_queries_can_next.end()) {
-                    replacement_queries_can_next.emplace(stmtPtr, true);
-                }
-                if (replacement_queries_can_next.at(stmtPtr)) {
-                    try {
-                        stmt->executeStep();
-                    } catch (exception &e) {
-                    }
-                }
-                if (stmt->hasRow()) {
-                    const int voiceId = query_getint(query, 0);
-                    const int voiceId1 = stmt->getColumn(0).getInt();
-                    const int cueId = query_getint(query, 3);
-                    const int cueId1 = stmt->getColumn(3).getInt();
-                    const string cueSheet = localify::u16_u8(
-                            reinterpret_cast<decltype(query_gettext_hook) *>(query_gettext_orig)(
-                                    query, 2)->start_char);
-                    const string cueSheet1 = stmt->getColumn(2).getString();
-
-                    if (voiceId == voiceId1 && cueId == cueId1 && cueSheet == cueSheet1) {
-                        replacement_queries_can_next.insert_or_assign(stmtPtr, true);
-                    } else {
-                        replacement_queries_can_next.insert_or_assign(stmtPtr, false);
-                    }
-                }
-            }
-        } catch (exception &e) {
-        }
-    }
-    return reinterpret_cast<decltype(MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_hook) *>(
-            MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_orig
-    )(thisObj, query, characterId);
-}
+/********* END OF master.mdb / SQLite plugin hooks ********/
 
 void *CySpringUpdater_set_SpringUpdateMode_orig = nullptr;
 
@@ -3565,59 +3680,40 @@ void hookMethods() {
     auto update_addr = il2cpp_symbols::get_method_pointer("DOTween.dll", "DG.Tweening.Core",
                                                           "TweenManager", "Update", 3);
 
-    auto query_setup_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                               "LibNative.Sqlite3", "Query",
-                                                               "_Setup", 2);
+    auto query_setup_addr = il2cpp_symbols::get_method_pointer(
+        "LibNative.Runtime.dll", "LibNative.Sqlite3",
+        "Query", "_Setup", 2
+    );
 
-    auto Plugin_sqlite3_step_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                       "LibNative.Sqlite3",
-                                                                       "Plugin", "sqlite3_step", 1);
+    auto query_getstr_addr = il2cpp_symbols::get_method_pointer(
+        "LibNative.Runtime.dll", "LibNative.Sqlite3",
+        "Query", "GetText", 1
+    );
 
-    auto Plugin_sqlite3_reset_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                        "LibNative.Sqlite3",
-                                                                        "Plugin", "sqlite3_reset",
-                                                                        1);
+    auto query_dispose_addr = il2cpp_symbols::get_method_pointer(
+        "LibNative.Runtime.dll", "LibNative.Sqlite3",
+        "Query", "Dispose", 0
+    );
 
-    auto query_step_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                              "LibNative.Sqlite3", "Query", "Step",
-                                                              0);
+    Query_GetInt = reinterpret_cast<int(*)(void*, int)>(
+        il2cpp_symbols::get_method_pointer(
+            "LibNative.Runtime.dll", "LibNative.Sqlite3",
+            "Query", "GetInt", -1
+        )
+    );
 
-    auto prepared_query_reset_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                        "LibNative.Sqlite3",
-                                                                        "PreparedQuery", "Reset",
-                                                                        0);
+    const auto PreparedQuery_BindInt_addr = il2cpp_symbols::get_method_pointer(
+        "LibNative.Runtime.dll", "LibNative.Sqlite3",
+        "PreparedQuery", "BindInt", -1
+    );
 
-    auto prepared_query_bind_text_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                            "LibNative.Sqlite3",
-                                                                            "PreparedQuery",
-                                                                            "BindText", 2);
+    const auto Plugin_sqlite3_step_addr = il2cpp_symbols::get_method_pointer(
+        "LibNative.Runtime.dll", "LibNative.Sqlite3",
+        "Plugin", "sqlite3_step", -1
+    );
 
-    auto prepared_query_bind_int_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                           "LibNative.Sqlite3",
-                                                                           "PreparedQuery",
-                                                                           "BindInt", 2);
-
-    auto prepared_query_bind_long_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                            "LibNative.Sqlite3",
-                                                                            "PreparedQuery",
-                                                                            "BindLong", 2);
-
-    auto prepared_query_bind_double_addr = il2cpp_symbols::get_method_pointer(
-            "LibNative.Runtime.dll", "LibNative.Sqlite3", "PreparedQuery", "BindDouble", 2);
-
-    auto query_gettext_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                 "LibNative.Sqlite3", "Query",
-                                                                 "GetText", 1);
-
-    query_getint = il2cpp_symbols::get_method_pointer<decltype(query_getint)>(
-            "LibNative.Runtime.dll",
-            "LibNative.Sqlite3",
-            "Query",
-            "GetInt", 1);
-
-    auto query_dispose_addr = il2cpp_symbols::get_method_pointer("LibNative.Runtime.dll",
-                                                                 "LibNative.Sqlite3", "Query",
-                                                                 "Dispose", 0);
+    const auto Query_stmt_field = il2cpp_symbols::get_field("LibNative.Runtime.dll", "LibNative.Sqlite3", "Query", "_stmt");
+    Query_stmt_offset = Query_stmt_field->offset;
 
     auto MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_addr = il2cpp_symbols::get_method_pointer(
             "umamusume.dll", "Gallop", "MasterCharacterSystemText",
@@ -4157,25 +4253,12 @@ void hookMethods() {
 
     ADD_HOOK(update)
 
+    // SQLite hooks (master.mdb)
     ADD_HOOK(query_setup)
-    ADD_HOOK(query_gettext)
+    ADD_HOOK(query_getstr)
     ADD_HOOK(query_dispose)
-
-    if (!g_replace_text_db_path.empty()) {
-        try {
-            replacementMDB = new SQLite::Database(g_replace_text_db_path.data());
-            ADD_HOOK(Plugin_sqlite3_step)
-            ADD_HOOK(Plugin_sqlite3_reset)
-            ADD_HOOK(query_step)
-            ADD_HOOK(prepared_query_reset)
-            ADD_HOOK(prepared_query_bind_text)
-            ADD_HOOK(prepared_query_bind_int)
-            ADD_HOOK(prepared_query_bind_long)
-            ADD_HOOK(prepared_query_bind_double)
-            ADD_HOOK(MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId)
-        } catch (exception &e) {
-        }
-    }
+    ADD_HOOK(PreparedQuery_BindInt)
+    ADD_HOOK(Plugin_sqlite3_step)
 
     if (g_cyspring_update_mode != -1) {
         ADD_HOOK(CySpringUpdater_set_SpringUpdateMode)
