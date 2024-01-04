@@ -55,8 +55,6 @@ struct ReplaceAsset {
 
 using namespace std;
 
-typedef std::basic_regex<std::u16string> u16regex;
-
 extern bool g_enable_logger;
 extern int g_max_fps;
 extern float g_ui_animation_scale;
