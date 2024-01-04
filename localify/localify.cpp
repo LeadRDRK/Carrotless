@@ -43,7 +43,7 @@ namespace localify {
     }
 
     void load_textdb(const string &version, const vector<string> *dicts) {
-        string path = string("/sdcard/Android/data/").append(Game::GetCurrentPackageName()).append(
+        string path = string(SDCARD_DATA_PATH "/").append(Game::GetCurrentPackageName()).append(
                 "/");
         for (const auto &dict: *dicts) {
             if (filesystem::exists(path + dict)) {
@@ -94,7 +94,7 @@ namespace localify {
     }
 
     void load_textId_textdb(const std::string &dict) {
-        string path = string("/sdcard/Android/data/").append(Game::GetCurrentPackageName()).append(
+        string path = string(SDCARD_DATA_PATH "/").append(Game::GetCurrentPackageName()).append(
                 "/");
         if (filesystem::exists(path + dict)) {
             std::ifstream dict_stream{path + dict};

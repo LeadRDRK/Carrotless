@@ -3316,7 +3316,7 @@ void HttpHelper_Initialize_hook(Il2CppObject *httpManager) {
                                                            kIl2CppSizeOfArray;
                                                const string data(buf, length);
 
-                                               auto out_path = "/sdcard/Android/data/"s.append(
+                                               auto out_path = SDCARD_DATA_PATH "/"s.append(
                                                        Game::GetCurrentPackageName()).append(
                                                        "/msgpack_dump/").append(
                                                        current_time()).append("Q.msgpack");
@@ -3367,7 +3367,7 @@ void HttpHelper_Initialize_hook(Il2CppObject *httpManager) {
                                                          kIl2CppSizeOfArray;
                                              const string data(buf, length);
 
-                                             auto out_path = "/sdcard/Android/data/"s.append(
+                                             auto out_path = SDCARD_DATA_PATH "/"s.append(
                                                      Game::GetCurrentPackageName()).append(
                                                      "/msgpack_dump/").append(
                                                      current_time()).append("R.msgpack");
@@ -4249,7 +4249,7 @@ void il2cpp_load_assetbundle() {
     if (!assets && !g_font_assetbundle_path.empty() && g_replace_to_custom_font) {
         auto assetbundlePath = localify::u8_u16(g_font_assetbundle_path);
         if (!assetbundlePath.starts_with(u"/")) {
-            assetbundlePath.insert(0, u"/sdcard/Android/data/"s.append(
+            assetbundlePath.insert(0, U_SDCARD_DATA_PATH "/"s.append(
                     localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
         }
         assets = load_from_file(
@@ -4267,7 +4267,7 @@ void il2cpp_load_assetbundle() {
     if (!replaceAssets && !g_replace_assetbundle_file_path.empty()) {
         auto assetbundlePath = localify::u8_u16(g_replace_assetbundle_file_path);
         if (!assetbundlePath.starts_with(u"/")) {
-            assetbundlePath.insert(0, u"/sdcard/Android/data/"s.append(
+            assetbundlePath.insert(0, U_SDCARD_DATA_PATH "/"s.append(
                     localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
         }
         replaceAssets = load_from_file(

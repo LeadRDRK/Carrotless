@@ -44,6 +44,9 @@
 #define ABI "unknown"
 #endif
 
+#define SDCARD_DATA_PATH "/sdcard/Android/media"
+#define U_SDCARD_DATA_PATH u"/sdcard/Android/media"
+
 struct ReplaceAsset {
     std::string path;
     Il2CppObject *asset;

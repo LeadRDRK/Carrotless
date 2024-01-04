@@ -277,7 +277,7 @@ HOOK_DEF(void*, NativeBridgeLoadLibraryExt_V30, const char *filename, int flag,
 
 optional<vector<string>> read_config() {
     ifstream config_stream{
-            string("/sdcard/Android/data/").append(Game::GetCurrentPackageName()).append(
+            string(SDCARD_DATA_PATH "/").append(Game::GetCurrentPackageName()).append(
                     "/config.json")};
     vector<string> dicts{};
 
@@ -372,7 +372,7 @@ optional<vector<string>> read_config() {
         if (document.HasMember("replaceAssetsPath")) {
             auto replaceAssetsPath = localify::u8_u16(document["replaceAssetsPath"].GetString());
             if (!replaceAssetsPath.starts_with(u"/")) {
-                replaceAssetsPath.insert(0, u16string(u"/sdcard/Android/data/").append(
+                replaceAssetsPath.insert(0, u16string(U_SDCARD_DATA_PATH "/").append(
                         localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
             }
             if (filesystem::exists(replaceAssetsPath) &&
@@ -390,7 +390,7 @@ optional<vector<string>> read_config() {
             auto replaceAssetBundleFilePath = localify::u8_u16(
                     document["replaceAssetBundleFilePath"].GetString());
             if (!replaceAssetBundleFilePath.starts_with(u"/")) {
-                replaceAssetBundleFilePath.insert(0, u16string(u"/sdcard/Android/data/").append(
+                replaceAssetBundleFilePath.insert(0, u16string(U_SDCARD_DATA_PATH "/").append(
                         localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
             }
             if (filesystem::exists(replaceAssetBundleFilePath) &&
@@ -404,7 +404,7 @@ optional<vector<string>> read_config() {
             auto replaceTextDBPath = localify::u8_u16(
                     document["replaceTextDBPath"].GetString());
             if (!replaceTextDBPath.starts_with(u"/")) {
-                replaceTextDBPath.insert(0, u16string(u"/sdcard/Android/data/").append(
+                replaceTextDBPath.insert(0, u16string(U_SDCARD_DATA_PATH "/").append(
                         localify::u8_u16(Game::GetCurrentPackageName())).append(u"/"));
             }
             if (filesystem::exists(replaceTextDBPath) &&

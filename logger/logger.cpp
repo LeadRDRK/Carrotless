@@ -25,7 +25,7 @@ namespace logger {
         if (g_enable_logger) {
             enabled = true;
             log_file.open(
-                    string("/sdcard/Android/data/").append(Game::GetCurrentPackageName()).append(
+                    string(SDCARD_DATA_PATH "/").append(Game::GetCurrentPackageName()).append(
                             "/dump.txt"),
                     ios::app | ios::out);
 
@@ -52,7 +52,7 @@ namespace logger {
 
     void dump_db_text(SQLite::Database *db, const string &tableName, const string &targetField,
                       const string &jsonPath) {
-        string jsonFolderPath = string("/sdcard/Android/data/").append(
+        string jsonFolderPath = string(SDCARD_DATA_PATH "/").append(
                 Game::GetCurrentPackageName()).append(
                 "/").append(
                 "original_data/");
@@ -133,7 +133,7 @@ namespace logger {
 
     void write_static_dict(const vector<u16string> &dict) {
         if (g_enable_logger) {
-            string jsonPath = string("/sdcard/Android/data/").append(
+            string jsonPath = string(SDCARD_DATA_PATH "/").append(
                     Game::GetCurrentPackageName()).append(
                     "/static.json");
             static_json.open(jsonPath, ios::out);
@@ -161,7 +161,7 @@ namespace logger {
     void write_text_id_static_dict(const vector<pair<const string, const u16string>> &dict,
                                    const vector<pair<const string, const u16string>> &not_matched) {
         if (g_enable_logger) {
-            string jsonPath = string("/sdcard/Android/data/").append(
+            string jsonPath = string(SDCARD_DATA_PATH "/").append(
                     Game::GetCurrentPackageName()).append(
                     "/");
             static_json.open(jsonPath + "text_id_static.json", ios::out);
