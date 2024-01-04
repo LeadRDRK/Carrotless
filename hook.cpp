@@ -36,7 +36,6 @@ string g_replace_assetbundle_file_path;
 bool g_character_system_text_caption = false;
 int g_cyspring_update_mode = -1;
 bool g_hide_now_loading = false;
-string g_packet_notifier;
 // Dicts (for master.mdb)
 string g_text_data_dict_path;
 string g_character_system_text_dict_path;
@@ -450,10 +449,6 @@ optional<vector<string>> read_config() {
 
                 dicts.emplace_back(dict);
             }
-        }
-
-        if (document.HasMember("packetNotifier")) {
-            g_packet_notifier = document["packetNotifier"].GetString();
         }
     }
 

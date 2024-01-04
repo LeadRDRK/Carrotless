@@ -15,10 +15,6 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/rapidjson/include)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/SQLiteCpp)
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/hmac_sha256)
-
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/cpp-httplib)
-
 include_directories(include)
 
 message("Build type: ${CMAKE_BUILD_TYPE}")
@@ -49,8 +45,8 @@ target_compile_definitions(sqlite3 PUBLIC SQLITE_ENABLE_BATCH_ATOMIC_WRITE)
 target_compile_definitions(sqlite3 PUBLIC SQLITE_TEMP_STORE=3)
 target_compile_definitions(sqlite3 PUBLIC SQLITE_USE_URI=1)
 
-add_library(${MODULE_NAME} SHARED main.cpp hook.cpp il2cpp/il2cpp_symbols.cpp il2cpp_hook.cpp localify/localify.cpp jwt/jwt.cpp logger/logger.cpp notifier/notifier.cpp elf_util.cpp)
-target_link_libraries(${MODULE_NAME} log dobby SQLiteCpp sqlite3 hmac_sha256 httplib)
+add_library(${MODULE_NAME} SHARED main.cpp hook.cpp il2cpp/il2cpp_symbols.cpp il2cpp_hook.cpp localify/localify.cpp logger/logger.cpp elf_util.cpp)
+target_link_libraries(${MODULE_NAME} log dobby SQLiteCpp sqlite3)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     add_custom_command(TARGET ${MODULE_NAME} POST_BUILD

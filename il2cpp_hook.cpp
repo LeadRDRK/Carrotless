@@ -3,8 +3,6 @@
 #include "il2cpp/il2cpp_symbols.h"
 #include "localify/localify.h"
 #include "logger/logger.h"
-#include "notifier/notifier.h"
-#include "jwt/jwt.hpp"
 
 #include <codecvt>
 #include <regex>

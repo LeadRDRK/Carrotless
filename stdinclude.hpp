@@ -105,7 +105,6 @@ extern string g_race_jikkyo_message_dict_path;
  */
 extern int g_cyspring_update_mode;
 extern bool g_hide_now_loading;
-extern string g_packet_notifier;
 
 namespace {
     // copy-pasted from https://stackoverflow.com/questions/3418231/replace-part-of-a-string-with-another-string
