@@ -36,11 +36,7 @@ string g_replace_assetbundle_file_path;
 bool g_character_system_text_caption = false;
 int g_cyspring_update_mode = -1;
 bool g_hide_now_loading = false;
-bool g_dump_msgpack = false;
-bool g_dump_msgpack_request = false;
 string g_packet_notifier;
-bool g_restore_gallop_webview = true;
-bool g_use_third_party_news = false;
 // Dicts (for master.mdb)
 string g_text_data_dict_path;
 string g_character_system_text_dict_path;
@@ -456,25 +452,8 @@ optional<vector<string>> read_config() {
             }
         }
 
-        if (document.HasMember("dumpMsgPack")) {
-            g_dump_msgpack = document["dumpMsgPack"].GetBool();
-        }
-
-        if (document.HasMember("dumpMsgPackRequest")) {
-            g_dump_msgpack_request = document["dumpMsgPackRequest"].GetBool();
-        }
-
         if (document.HasMember("packetNotifier")) {
             g_packet_notifier = document["packetNotifier"].GetString();
-        }
-
-        if (Game::currentGameRegion == Game::Region::KOR) {
-            if (document.HasMember("restoreGallopWebview")) {
-                g_restore_gallop_webview = document["restoreGallopWebview"].GetBool();
-            }
-            if (document.HasMember("useThirdPartyNews")) {
-                g_use_third_party_news = document["useThirdPartyNews"].GetBool();
-            }
         }
     }
 
