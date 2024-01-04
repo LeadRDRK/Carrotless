@@ -80,18 +80,6 @@ if (!viewport) {
 viewport.content = `width=device-width, initial-scale=${window.zoomScale}, user-scalable=no`;
 )";
 
-const auto GotoTitleError = "내부적으로 오류가 발생하여 홈으로 이동합니다.\n\n"
-                            "경우에 따라서 <color=#ff911c><i>타이틀</i></color>로 돌아가거나, \n"
-                            "게임 <color=#ff911c><i>다시 시작</i></color>이 필요할 수 있습니다."s;
-
-const auto GotoTitleErrorJa = "内部的にエラーが発生し、ホームに移動します。\n\n"
-                              "場合によっては、<color=#ff911c><i>タイトル</i></color>に戻るか、\n"
-                              "ゲーム<color=#ff911c><i>再起動</i></color>が必要になる場合がありますあります。"s;
-
-const auto GotoTitleErrorHan = "內部發生錯誤，移動到主頁。\n\n"
-                               "在某些情況下，可能需要返回<color=#ff911c><i>標題</i></color>に戻るか，\n"
-                               "或者遊戲<color=#ff911c><i>重新開始</i></color>。"s;
-
 static void *il2cpp_handle = nullptr;
 static uint64_t il2cpp_base = 0;
 
@@ -854,153 +842,6 @@ MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_hook(Il2CppObjec
     return reinterpret_cast<decltype(MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_hook) *>(
             MasterCharacterSystemText_CreateOrmByQueryResultWithCharacterId_orig
     )(thisObj, query, characterId);
-}
-
-uintptr_t currentPlayerHandle;
-
-void
-ShowCaptionByNotification(Il2CppObject *audioManager, Il2CppObject *elem, uintptr_t playerHandle) {
-    auto characterIdField = il2cpp_class_get_field_from_name(elem->klass, "CharacterId");
-    auto voiceIdField = il2cpp_class_get_field_from_name(elem->klass, "VoiceId");
-    auto textField = il2cpp_class_get_field_from_name(elem->klass, "Text");
-    auto cueSheetField = il2cpp_class_get_field_from_name(elem->klass, "CueSheet");
-    auto cueIdField = il2cpp_class_get_field_from_name(elem->klass, "CueId");
-
-    int characterId;
-    il2cpp_field_get_value(elem, characterIdField, &characterId);
-
-    int voiceId;
-    il2cpp_field_get_value(elem, voiceIdField, &voiceId);
-
-    Il2CppString *text;
-    il2cpp_field_get_value(elem, textField, &text);
-
-    Il2CppString *cueSheet;
-    il2cpp_field_get_value(elem, cueSheetField, &cueSheet);
-
-    int cueId;
-    il2cpp_field_get_value(elem, cueIdField, &cueId);
-
-    auto u8Text = localify::u16_u8(text->start_char);
-    replaceAll(u8Text, "\n", " ");
-    auto uiManager = GetSingletonInstance(
-            il2cpp_symbols::get_class("umamusume.dll", "Gallop", "UIManager"));
-    if (uiManager && u16string(cueSheet->start_char).find(u"_home_") == string::npos &&
-        u16string(cueSheet->start_char).find(u"_tc_") == string::npos &&
-        u16string(cueSheet->start_char).find(u"_title_") == string::npos &&
-        u16string(cueSheet->start_char).find(u"_gacha_") == string::npos &&
-        u16string(cueSheet->start_char).find(u"_kakao_") == string::npos && voiceId != 95001 &&
-        (characterId < 9000 || voiceId == 70000)) {
-        auto ShowNotification = reinterpret_cast<void (*)(Il2CppObject *, Il2CppString *)>(
-                il2cpp_class_get_method_from_name(uiManager->klass, "ShowNotification",
-                                                  1)->methodPointer
-        );
-        auto LineHeadWrap = il2cpp_symbols::get_method_pointer<Il2CppString *(*)(Il2CppString *,
-                                                                                 int)>(
-                "umamusume.dll", "Gallop", "GallopUtil",
-                "LineHeadWrap", 2);
-
-        auto notiField = il2cpp_class_get_field_from_name(uiManager->klass, "_notification");
-        Il2CppObject *notification;
-        il2cpp_field_get_value(uiManager, notiField, &notification);
-
-        auto timeField = il2cpp_class_get_field_from_name(notification->klass, "_displayTime");
-        float displayTime;
-        il2cpp_field_get_value(notification, timeField, &displayTime);
-
-        float length = reinterpret_cast<float (*)(Il2CppObject *, Il2CppString *, int)>(
-                il2cpp_class_get_method_from_name(audioManager->klass, "GetCueLength",
-                                                  2)->methodPointer
-        )(audioManager, cueSheet, cueId);
-        il2cpp_field_set_value(notification, timeField, &length);
-
-        currentPlayerHandle = playerHandle;
-        ShowNotification(uiManager, LineHeadWrap(il2cpp_string_new(u8Text.data()), 32));
-
-        il2cpp_field_set_value(notification, timeField, &displayTime);
-    }
-}
-
-void *AtomSourceEx_SetParameter_orig = nullptr;
-
-void AtomSourceEx_SetParameter_hook(Il2CppObject *thisObj) {
-    reinterpret_cast<decltype(AtomSourceEx_SetParameter_hook) *>(AtomSourceEx_SetParameter_orig)(
-            thisObj);
-
-    FieldInfo *cueIdField = il2cpp_class_get_field_from_name(thisObj->klass,
-                                                             "<CueId>k__BackingField");
-    int cueId;
-    il2cpp_field_get_value(thisObj, cueIdField, &cueId);
-
-    FieldInfo *cueSheetField = il2cpp_class_get_field_from_name(thisObj->klass, "_cueSheet");
-    Il2CppString *cueSheet;
-    il2cpp_field_get_value(thisObj, cueSheetField, &cueSheet);
-
-    const regex r(R"((\d{4})(?:\d{2}))");
-    smatch stringMatch;
-    const auto cueSheetU8 = localify::u16_u8(cueSheet->start_char);
-    regex_search(cueSheetU8, stringMatch, r);
-    if (!stringMatch.empty()) {
-        Il2CppObject *textList = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(int)>(
-                "umamusume.dll", "Gallop",
-                "MasterCharacterSystemText", "GetByCharaId", 1)(
-                stoi(stringMatch[1].str()));
-        FieldInfo *itemsField = il2cpp_class_get_field_from_name(textList->klass, "_items");
-        Il2CppArray *textArr;
-        il2cpp_field_get_value(textList, itemsField, &textArr);
-
-        auto audioManager = GetSingletonInstance(
-                il2cpp_symbols::get_class("umamusume.dll", "Gallop", "AudioManager"));
-
-
-        for (int i = 0; i < textArr->max_length; i++) {
-            auto elem = reinterpret_cast<Il2CppObject *>(textArr->vector[i]);
-            if (elem) {
-                auto elemCueIdField = il2cpp_class_get_field_from_name(elem->klass, "CueId");
-                auto elemCueSheetField = il2cpp_class_get_field_from_name(elem->klass, "CueSheet");
-
-                Il2CppString *elemCueSheet;
-                il2cpp_field_get_value(elem, elemCueSheetField, &elemCueSheet);
-
-                int elemCueId;
-                il2cpp_field_get_value(elem, elemCueIdField, &elemCueId);
-
-                if (u16string(elemCueSheet->start_char) == u16string(cueSheet->start_char) &&
-                    cueId == elemCueId) {
-                    auto playerField = il2cpp_class_get_field_from_name(thisObj->klass,
-                                                                        "<player>k__BackingField");
-                    Il2CppObject *player;
-                    il2cpp_field_get_value(thisObj, playerField, &player);
-
-                    auto handleField = il2cpp_class_get_field_from_name(player->klass, "handle");
-                    uintptr_t handle;
-                    il2cpp_field_get_value(player, handleField, &handle);
-
-                    ShowCaptionByNotification(audioManager, elem, handle);
-                    return;
-                }
-            }
-        }
-    }
-}
-
-void *CriAtomExPlayer_criAtomExPlayer_Stop_orig = nullptr;
-
-void CriAtomExPlayer_criAtomExPlayer_Stop_hook(uintptr_t playerHandle) {
-    reinterpret_cast<decltype(CriAtomExPlayer_criAtomExPlayer_Stop_hook) *>(CriAtomExPlayer_criAtomExPlayer_Stop_orig)(
-            playerHandle);
-    if (playerHandle == currentPlayerHandle) {
-        currentPlayerHandle = 0;
-        auto uiManager = GetSingletonInstance(
-                il2cpp_symbols::get_class("umamusume.dll", "Gallop", "UIManager"));
-        if (uiManager) {
-            auto HideNotification = reinterpret_cast<void (*)(Il2CppObject *)>(
-                    il2cpp_class_get_method_from_name(uiManager->klass, "HideNotification",
-                                                      0)->methodPointer
-            );
-            HideNotification(uiManager);
-        }
-    }
 }
 
 void *CySpringUpdater_set_SpringUpdateMode_orig = nullptr;
@@ -2473,37 +2314,6 @@ void DialogCommon_Close_hook(Il2CppObject *thisObj) {
     reinterpret_cast<decltype(DialogCommon_Close_hook) *>(DialogCommon_Close_orig)(thisObj);
 }
 
-void *GallopUtil_GotoTitleOnError_orig = nullptr;
-
-void GallopUtil_GotoTitleOnError_hook(Il2CppString * /*text*/) {
-    // Bypass SoftwareReset
-    auto okText = GetTextIdByName("Common0009");
-    auto errorText = GetTextIdByName("Common0071");
-
-    auto dialogData = il2cpp_object_new(
-            il2cpp_symbols::get_class("umamusume.dll", "Gallop", "DialogCommon/Data"));
-    il2cpp_runtime_object_init(dialogData);
-    auto message = GotoTitleError;
-    if (Game::currentGameRegion == Game::Region::JAP) {
-        message = GotoTitleErrorJa;
-    }
-    if (Game::currentGameRegion == Game::Region::TWN) {
-        message = GotoTitleErrorHan;
-    }
-    dialogData = reinterpret_cast<Il2CppObject *(*)(Il2CppObject *thisObj,
-                                                    unsigned long headerTextId,
-                                                    Il2CppString *message,
-                                                    Il2CppDelegate *onClickCenterButton,
-                                                    unsigned long closeTextId)>(
-            il2cpp_class_get_method_from_name(dialogData->klass, "SetSimpleOneButtonMessage",
-                                              4)->methodPointer
-    )(dialogData, errorText, localify::get_localized_string(il2cpp_string_new(message.data())),
-      nullptr, okText);
-    errorDialog = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject *data,
-                                                                       bool isEnableOutsideClick)>(
-            "umamusume.dll", "Gallop", "DialogManager", "PushSystemDialog", 2)(dialogData, true);
-}
-
 void *GameSystem_FixedUpdate_orig = nullptr;
 
 void GameSystem_FixedUpdate_hook(Il2CppObject *thisObj) {
@@ -3813,16 +3623,6 @@ void hookMethods() {
             "umamusume.dll", "Gallop", "MasterCharacterSystemText",
             "_CreateOrmByQueryResultWithCharacterId", 2);
 
-    auto CriAtomExPlayer_criAtomExPlayer_Stop_addr =
-            GetUnityVersion().starts_with(Unity2020) ? il2cpp_symbols::get_method_pointer(
-                    "CriMw.CriWare.Runtime.dll", "CriWare", "CriAtomExPlayer",
-                    "criAtomExPlayer_Stop", 1)
-                                           : il2cpp_symbols::get_method_pointer(
-                    "Cute.Cri.Assembly.dll", "", "CriAtomExPlayer", "criAtomExPlayer_Stop", 1);
-
-    auto AtomSourceEx_SetParameter_addr = il2cpp_symbols::get_method_pointer(
-            "Cute.Cri.Assembly.dll", "Cute.Cri", "AtomSourceEx", "SetParameter", 0);
-
     auto CySpringUpdater_set_SpringUpdateMode_addr = il2cpp_symbols::get_method_pointer(
             "umamusume.dll", "Gallop.Model.Component", "CySpringUpdater", "set_SpringUpdateMode",
             1);
@@ -4183,11 +3983,6 @@ void hookMethods() {
             Il2CppString *path)>(il2cpp_symbols::get_method_pointer(
             "UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundle", "LoadFromFile", 1));
 
-    /*auto load_from_memory_async = reinterpret_cast<Il2CppObject *(*)(
-    Il2CppArray *bytes)>(il2cpp_symbols::get_method_pointer(
-    "UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundle",
-    "LoadFromMemoryAsync", 1);*/
-
     auto PathResolver_GetLocalPath_addr = il2cpp_symbols::get_method_pointer("_Cyan.dll",
                                                                              "Cyan.LocalFile",
                                                                              "PathResolver",
@@ -4304,12 +4099,6 @@ void hookMethods() {
 
     ADD_HOOK(GameSystem_FixedUpdate)
 
-    /*if (GetUnityVersion().starts_with(Unity2020)) {
-        ADD_HOOK(DialogCommon_Close)
-    }*/
-
-    // ADD_HOOK(GallopUtil_GotoTitleOnError)
-
     ADD_HOOK(Light_set_shadowResolution)
 
     ADD_HOOK(PathResolver_GetLocalPath)
@@ -4388,11 +4177,6 @@ void hookMethods() {
         }
     }
 
-    if (g_character_system_text_caption) {
-        ADD_HOOK(CriAtomExPlayer_criAtomExPlayer_Stop)
-        ADD_HOOK(AtomSourceEx_SetParameter)
-    }
-
     if (g_cyspring_update_mode != -1) {
         ADD_HOOK(CySpringUpdater_set_SpringUpdateMode)
         ADD_HOOK(CySpringUpdater_get_SpringUpdateMode)
@@ -4415,7 +4199,6 @@ void hookMethods() {
         ADD_HOOK(MoviePlayerForUI_AdjustScreenSize)
         ADD_HOOK(MoviePlayerForObj_AdjustScreenSize)
         ADD_HOOK(GraphicSettings_GetVirtualResolution)
-        // ADD_HOOK(TapEffectController_Disable)
     }
 
     ADD_HOOK(on_populate)
@@ -4475,31 +4258,6 @@ void il2cpp_load_assetbundle() {
         if (!assets && filesystem::exists(assetbundlePath)) {
             LOGW("Asset founded but not loaded. Maybe Asset BuildTarget is not for Android");
         }
-
-        /* Load from Memory Async
-
-        ifstream infile(localify::u16_u8(assetbundlePath).data(), ios_base::binary);
-
-        vector<char> buffer((istreambuf_iterator<char>(infile)), istreambuf_iterator<char>());
-
-        Il2CppArray* assetBytes = il2cpp_array_new(il2cpp_defaults.byte_class, buffer.size());
-
-        for (int i = 0; i < buffer.size(); i++) {
-            il2cpp_array_set(assetBytes, char, i, buffer[i]);
-        }
-        Il2CppObject* createReq = load_from_memory_async(assetBytes);
-
-        auto get_assetBundle = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(
-                Il2CppObject* thisObj)>("UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundleCreateRequest", "get_assetBundle", 0);
-
-        auto get_isDone = il2cpp_symbols::get_method_pointer<Il2CppObject *(*)(Il2CppObject* thisObj)>(
-                "UnityEngine.CoreModule.dll", "UnityEngine", "AsyncOperation", "get_isDone", 0);
-
-        thread load_thread([createReq, get_assetBundle, get_isDone]() {
-            while (!get_isDone(createReq)) {}
-            assets = get_assetBundle(createReq);
-        });
-        load_thread.detach();*/
     }
 
     if (assets) {
@@ -4617,14 +4375,6 @@ void il2cpp_load_assetbundle() {
 
         ADD_HOOK(CharaPropRendererAccessor_SetTexture)
     }
-
-    /*if (g_force_landscape) {
-        auto enumerator = reinterpret_cast<Il2CppObject * (*)()>(il2cpp_symbols::get_method_pointer(
-                "umamusume.dll",
-                "Gallop",
-                "Screen", "ChangeScreenOrientationLandscapeAsync", -1))();
-        ExecuteCoroutine(enumerator);
-    }*/
 }
 
 void il2cpp_hook_init(void *handle) {
