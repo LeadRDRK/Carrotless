@@ -16,9 +16,9 @@ The easiest way to install is by using [UmaPatcher](https://github.com/LeadRDRK/
 5. Build the APK file and install it.
 
 # Configuration
-Carrotless is 100% compatible with umamusume-localify-android and similarly uses `/sdcard/Android/data/jp.co.cygames.umamusume` as the working directory. Simply put `config.json` and the files referenced in the `dicts` value of the config to the directory and you're all set.
+Carrotless is partially compatible with umamusume-localify-android but uses `/sdcard/Android/media/jp.co.cygames.umamusume` as the working directory. Simply put `config.json` and the files referenced in the `dicts` value of the config to the directory and you're all set.
 
-The original settings app can also be used. You can install it from [GitHub Releases](https://github.com/Kimjio/umamusume-localify-android/releases) or [Play Store](https://play.google.com/store/apps/details?id=com.kimjio.umamusumelocalify.settings)
+Starting from v0.2.0, the original project's settings app is no longer compatible with Carrotless. If needed, you must edit the config.json file manually.
 
 More info is available in the original project's [README](https://github.com/Kimjio/umamusume-localify-android/blob/main/README.md).
 
