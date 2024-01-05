@@ -135,9 +135,13 @@ namespace localify {
     }*/
 
     void load_dicts() {
+        std::string dataPath;
+        GetDataPath(dataPath);
+        dataPath += "/";
+
         // TextData
         if (!g_text_data_dict_path.empty()) {
-            std::ifstream textDict(g_text_data_dict_path);
+            std::ifstream textDict(dataPath + g_text_data_dict_path);
             rapidjson::IStreamWrapper wrapper(textDict);
             rapidjson::Document doc;
             doc.ParseStream(wrapper);
@@ -162,7 +166,7 @@ namespace localify {
 
         // CharacterSystemText
         if (!g_character_system_text_dict_path.empty()) {
-            std::ifstream characterSystemTextDict(g_character_system_text_dict_path);
+            std::ifstream characterSystemTextDict(dataPath + g_character_system_text_dict_path);
             rapidjson::IStreamWrapper wrapper(characterSystemTextDict);
             rapidjson::Document doc;
             doc.ParseStream(wrapper);
@@ -187,7 +191,7 @@ namespace localify {
 
         // RaceJikkyoComment
         if (!g_race_jikkyo_comment_dict_path.empty()) {
-            std::ifstream raceJikkyoCommentDict(g_race_jikkyo_comment_dict_path);
+            std::ifstream raceJikkyoCommentDict(dataPath + g_race_jikkyo_comment_dict_path);
             rapidjson::IStreamWrapper wrapper(raceJikkyoCommentDict);
             rapidjson::Document doc;
             doc.ParseStream(wrapper);
@@ -207,7 +211,7 @@ namespace localify {
 
         // RaceJikkyoMessage
         if (!g_race_jikkyo_message_dict_path.empty()) {
-            std::ifstream raceJikkyoMessageDict(g_race_jikkyo_message_dict_path);
+            std::ifstream raceJikkyoMessageDict(dataPath + g_race_jikkyo_message_dict_path);
             rapidjson::IStreamWrapper wrapper(raceJikkyoMessageDict);
             rapidjson::Document doc;
             doc.ParseStream(wrapper);
@@ -327,4 +331,9 @@ namespace localify {
 
 		return nullptr;
 	}
+
+    void GetDataPath(std::string& out)
+    {
+        out = string(SDCARD_DATA_PATH "/").append(Game::GetCurrentPackageName());
+    }
 }

@@ -60,6 +60,8 @@ namespace localify {
     Il2CppString* GetRaceJikkyoCommentData(std::size_t id);
 
     Il2CppString* GetRaceJikkyoMessageData(std::size_t id);
+
+    void GetDataPath(std::string& out);
 }
 
 #endif //UMAMUSUMELOCALIFYANDROID_LOCALIFY_H
