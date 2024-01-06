@@ -3274,14 +3274,14 @@ void hookMethods() {
             "UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundle", "LoadFromFile", 1);
 
 #define ADD_HOOK(_name_) \
-    LOGI("ADD_HOOK: %s", #_name_); \
+    LOGI("ADD_HOOK: " #_name_); \
     if (_name_##_addr) DobbyHook(reinterpret_cast<void *>(_name_##_addr), reinterpret_cast<void *>(_name_##_hook), reinterpret_cast<void **>(&_name_##_orig)); \
-    else LOGW("ADD_HOOK: %s_addr is null", #_name_);
+    else LOGW("ADD_HOOK: " #_name_ "_addr is null");
 
 #define ADD_HOOK_NEW(_name_) \
-    LOGI("ADD_HOOK_NEW: %s", #_name_); \
+    LOGI("ADD_HOOK_NEW: " #_name_); \
     if (addr_##_name_) DobbyHook(reinterpret_cast<void *>(addr_##_name_), reinterpret_cast<void *>(new_##_name_), reinterpret_cast<void **>(&orig_##_name_)); \
-    else LOGW("ADD_HOOK_NEW: addr_%s is null", #_name_);
+    else LOGW("ADD_HOOK_NEW: addr_" #_name_ " is null");
 
     if (Game::currentGameRegion == Game::Region::KOR && g_restore_notification && false) {
         SendNotification = il2cpp_symbols::get_method_pointer<decltype(SendNotification)>(

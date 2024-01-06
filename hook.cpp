@@ -87,6 +87,8 @@ HOOK_DEF(bool, il2cpp_init, const char *domain_name) {
     if (!text_id_dict.empty()) {
         localify::load_textId_textdb(text_id_dict);
     }
+    localify::load_dicts();
+    
     il2cpp_hook();
     DobbyDestroy(addr_il2cpp_init);
     return result;
@@ -398,7 +400,7 @@ optional<vector<string>> read_config() {
             }
         }
 
-        // Load dicts
+        // master.mdb dicts
         if (document.HasMember("text_data_dict")) {
             g_text_data_dict_path = document["text_data_dict"].GetString();
         }
@@ -414,8 +416,6 @@ optional<vector<string>> read_config() {
         if (document.HasMember("race_jikkyo_message_dict")) {
             g_race_jikkyo_message_dict_path = document["race_jikkyo_message_dict"].GetString();
         }
-
-        localify::load_dicts();
 
         //////
 
