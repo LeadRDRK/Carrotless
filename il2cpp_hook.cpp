@@ -2715,6 +2715,37 @@ void DialogCircleItemDonate_Initialize_hook(Il2CppObject *thisObj, Il2CppObject 
     )(thisObj);
 }
 
+typedef std::char_traits<Il2CppChar> Il2CppCharTraits;
+
+void* tpca2u_getskillcaptiontext_orig = nullptr;
+Il2CppString* tpca2u_getskillcaptiontext_hook(Il2CppObject *thisObj, int skill_id, int skill_level) {
+    Il2CppString* ret = reinterpret_cast<decltype(tpca2u_getskillcaptiontext_hook)*>(tpca2u_getskillcaptiontext_orig)(thisObj, skill_id, skill_level);
+    Il2CppChar* str = ret->start_char;
+    int32_t length = ret->length;
+
+    if (Il2CppCharTraits::compare(str, u"<size=", 6) == 0 &&
+        Il2CppCharTraits::compare(str + (length - 7), u"</size>", 7) == 0)
+    {
+        auto tag_close_p = Il2CppCharTraits::find(str, length, u'>');
+        if (tag_close_p == str + length - 1) {
+            // improperly closed tag
+            return ret;
+        }
+
+        size_t content_start_offset = tag_close_p - str + 1;
+        int32_t new_length = length - content_start_offset - 7;
+
+        Il2CppChar* new_str = new Il2CppChar[new_length];
+        memcpy(new_str, str + content_start_offset, new_length * sizeof(Il2CppChar));
+
+        auto new_ret = il2cpp_string_new_utf16(new_str, new_length);
+        delete[] new_str;
+        return new_ret;
+    }
+
+    return ret;
+}
+
 void dump_all_entries() {
     vector<u16string> static_entries;
     vector<pair<const string, const u16string>> text_id_static_entries;
@@ -3406,6 +3437,18 @@ void hookMethods() {
     ADD_HOOK(query_dispose)
     ADD_HOOK(PreparedQuery_BindInt)
     ADD_HOOK(Plugin_sqlite3_step)
+
+    // Skills
+    auto trainingparamchangea2u_class = il2cpp_symbols::get_class("umamusume.dll", "Gallop", "TrainingParamChangeA2U");
+    auto tpca2u_getskillcaptiontext_addr = il2cpp_symbols::get_method_pointer(
+        "umamusume.dll",
+        "Gallop",
+        "TrainingParamChangeA2U",
+        "GetSkillCaptionText",
+        2
+    );
+    ADD_HOOK(tpca2u_getskillcaptiontext)
+    
 
     if (g_cyspring_update_mode != -1) {
         ADD_HOOK(CySpringUpdater_set_SpringUpdateMode)
