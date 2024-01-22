@@ -3439,7 +3439,6 @@ void hookMethods() {
     ADD_HOOK(Plugin_sqlite3_step)
 
     // Skills
-    auto trainingparamchangea2u_class = il2cpp_symbols::get_class("umamusume.dll", "Gallop", "TrainingParamChangeA2U");
     auto tpca2u_getskillcaptiontext_addr = il2cpp_symbols::get_method_pointer(
         "umamusume.dll",
         "Gallop",
