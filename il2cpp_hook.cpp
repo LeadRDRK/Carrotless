@@ -238,15 +238,24 @@ Il2CppObject *GetCustomTMPFont() {
     return GetCustomTMPFontFallback();
 }
 
-bool ExecuteCoroutine(Il2CppObject *enumerator) {
-    auto executor = il2cpp_object_new(
-            il2cpp_symbols::get_class("umamusume.dll", "Gallop", "CoroutineExecutor"));
-    reinterpret_cast<void (*)(Il2CppObject *, Il2CppObject *)>(
-            il2cpp_class_get_method_from_name(executor->klass, ".ctor", 1)->methodPointer
-    )(executor, enumerator);
-    return reinterpret_cast<bool (*)(Il2CppObject *)>(
-            il2cpp_class_get_method_from_name(executor->klass, "UpdateCoroutine", 0)->methodPointer
-    )(executor);
+Il2CppClass* get_class_from_instance(const void* instance)
+{
+    return *static_cast<Il2CppClass* const*>(std::assume_aligned<alignof(void*)>(instance));
+}
+
+void iterate_IEnumerable(const void* obj, std::invocable<Il2CppObject*> auto&& receiver)
+{
+    const auto klass = get_class_from_instance(obj);
+    const auto getEnumeratorMethod = reinterpret_cast<void* (*)(const void*)>(il2cpp_class_get_method_from_name(klass, "GetEnumerator", 0)->methodPointer);
+    const auto enumerator = getEnumeratorMethod(obj);
+    const auto enumeratorClass = get_class_from_instance(enumerator);
+    const auto getCurrentMethod = reinterpret_cast<Il2CppObject* (*)(void*)>(il2cpp_class_get_method_from_name(enumeratorClass, "get_Current", 0)->methodPointer);
+    const auto moveNextMethod = reinterpret_cast<bool(*)(void*)>(il2cpp_class_get_method_from_name(enumeratorClass, "MoveNext", 0)->methodPointer);
+
+    while (moveNextMethod(enumerator))
+    {
+        static_cast<decltype(receiver)>(receiver)(getCurrentMethod(enumerator));
+    }
 }
 
 string GetUnityVersion() {
@@ -1103,30 +1112,24 @@ void *story_timeline_controller_play_hook(Il2CppObject *thisObj) {
 
 void *story_race_textasset_load_orig;
 
+Il2CppClass* StoryRaceTextAssetKeyClass = nullptr;
+FieldInfo* StoryRaceTextAssetKeyClass_textField = nullptr;
 void story_race_textasset_load_hook(Il2CppObject *thisObj) {
     FieldInfo *textDataField = {il2cpp_class_get_field_from_name(thisObj->klass, "textData")};
     Il2CppObject *textData;
     il2cpp_field_get_value(thisObj, textDataField, &textData);
 
-    auto enumerator = reinterpret_cast<Il2CppObject *(*)(
-            Il2CppObject *thisObj)>(il2cpp_class_get_method_from_name(textData->klass,
-                                                                      "GetEnumerator",
-                                                                      0)->methodPointer)(textData);
-    auto get_current = reinterpret_cast<Il2CppObject *(*)(
-            Il2CppObject *thisObj)>(il2cpp_class_get_method_from_name(enumerator->klass,
-                                                                      "get_Current",
-                                                                      0)->methodPointer);
-    /*auto move_next = reinterpret_cast<bool (*)(
-            Il2CppObject *thisObj)>(il2cpp_class_get_method_from_name(enumerator->klass, "MoveNext",
-                                                                      0)->methodPointer);*/
-
-    while (ExecuteCoroutine(enumerator)) {
-        auto key = get_current(enumerator);
-        FieldInfo *textField = {il2cpp_class_get_field_from_name(key->klass, "text")};
+    iterate_IEnumerable(textData, [&, i = 0](Il2CppObject* key) mutable
+	{
+        if (!StoryRaceTextAssetKeyClass)
+        {
+            StoryRaceTextAssetKeyClass = get_class_from_instance(key);
+            StoryRaceTextAssetKeyClass_textField = { il2cpp_class_get_field_from_name(StoryRaceTextAssetKeyClass, "text") };
+        }
         Il2CppString *text;
-        il2cpp_field_get_value(key, textField, &text);
-        il2cpp_field_set_value(key, textField, localify::get_localized_string(text));
-    }
+        il2cpp_field_get_value(key, StoryRaceTextAssetKeyClass_textField, &text);
+        il2cpp_field_set_value(key, StoryRaceTextAssetKeyClass_textField, localify::get_localized_string(text));
+    });
 
     reinterpret_cast<decltype(story_race_textasset_load_hook) * > (story_race_textasset_load_orig)(
             thisObj);
